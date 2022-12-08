@@ -19,6 +19,7 @@ def main():
     #
     driver = SHAWrapper(src_path, args.sha_size, args.sha_types)
     driver.run()
+    driver.get_time_stats()
     #
 #
 if __name__ == "__main__":

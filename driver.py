@@ -3,6 +3,10 @@ from pathlib import Path
 from collections import defaultdict
 from time import time
 
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+
 class SHAWrapper():
     def __init__(self, path : Path, sha_size : int = None, sha_types : str = None) -> None:
         self.path = path
@@ -64,6 +68,7 @@ class SHAWrapper():
         collisions = defaultdict()
         collisions = defaultdict(lambda:0, collisions)
         #
+        print(name)
         start = time()
         for data_it in self.data:
             res_hash = func(data_it.encode())
@@ -75,7 +80,8 @@ class SHAWrapper():
         end = time()
         #
         self.process_collisions(collisions, name)
-        self.time_stats[tuple([name, self.sha_size])] = end - start
+        # NOTE: miliseconds measurement
+        self.time_stats[name] = (end - start) * 1000
         #
     #
     def process_collisions(self, data : defaultdict, name : str):
@@ -84,4 +90,20 @@ class SHAWrapper():
         for it in data.values():
             collisions_num += (it - 1)
             #
-        self.collisions_stats[tuple([name, self.sha_size])] = collisions_num
+        self.collisions_stats[name] = collisions_num
+        #
+    #
+    def get_collisions_stats(self):
+        plt.figure(figsize=(16,10))
+        plt.bar(list(self.collisions_stats.keys()), self.collisions_stats.values(), color ='g')
+        plt.title("Collisions stats")
+        plt.show()
+        #
+    #
+    def get_time_stats(self):
+        plt.figure(figsize=(16,10))
+        plt.bar(list(self.time_stats.keys()), self.time_stats.values(), color ='r')
+        plt.title("Time stats")
+        plt.show()
+        #
+    #
