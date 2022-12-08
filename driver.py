@@ -3,16 +3,15 @@ from pathlib import Path
 from collections import defaultdict
 from time import time
 
-import seaborn as sns
 import matplotlib.pyplot as plt
 
-
 class SHAWrapper():
-    def __init__(self, path : Path, sha_size : int = None, sha_types : str = None) -> None:
+    def __init__(self, path : Path = None, sha_size : int = None, sha_types : str = None) -> None:
+    #
         self.path = path
         self.sha_size = sha_size
         self.sha_types = sha_types
-        self.data = list()
+        self.data = set()
         #
         self._size2algo = dict({
             128 : list([tuple([hashlib.md5, "md5"]),                    \
@@ -37,7 +36,7 @@ class SHAWrapper():
             #
             512 : list([tuple([hashlib.sha512, "sha512"]),              \
                         tuple([hashlib.sha3_512, "sha3_512"]),          \
-                        tuple([hashlib.blake2b, "blake2b"])]),            \
+                        tuple([hashlib.blake2b, "blake2b"])]),          \
         })
         #
         self.collisions_stats = dict()
@@ -53,44 +52,51 @@ class SHAWrapper():
         cur_shas = self._size2algo.get(self.sha_size)
         #
         for cur_sha in cur_shas:
-            func, name = cur_sha[0], cur_sha[1]
-            self.run_test(func, name)        
+            hash_func, name = cur_sha[0], cur_sha[1]
+            self.run_sha(hash_func, name)        
         #
     #
     def parse(self):
+    #
         with open(self.path) as src:
-            pwds = src.read().split('\n')
-            for pwd in pwds:
-                self.data.append(pwd)
+            words = src.read().split('\n')
+            for word in words:
+                self.data.add(word)
         #
     #
-    def run_test(self, func, name : str):
-        collisions = defaultdict()
-        collisions = defaultdict(lambda:0, collisions)
+    def run_sha(self, hash_func, name : str):
+        hash_set, collisions_num = set(), 0
+        hex_hash, hash = None, None
         #
-        print(name)
         start = time()
+        print(name)
+
         for data_it in self.data:
-            res_hash = func(data_it.encode())
+
+            if isinstance(data_it, int):
+                data_it = hex(data_it).encode()
+            else: data_it = data_it.encode()
+            #
+            if name in ["blake2b", "blake2s"]:
+                hash = hash_func(data_it, digest_size = self.sha_size // 8)
+            else:
+                hash = hash_func(data_it)
+            #
             if name in ["shake_128", "shake_256"]:
-                collisions[res_hash.hexdigest(self.sha_size)] += 1
+                hex_hash = hash.hexdigest(self.sha_size // 8) 
             else: 
-                collisions[res_hash.hexdigest()] += 1
+                hex_hash = hash.hexdigest()
+            #
+            if hex_hash in hash_set:
+                print(f"data = {data_it}, hex_hash = {hex_hash}")
+                collisions_num +=1
+            else: hash_set.add(hex_hash)
         #
         end = time()
         #
-        self.process_collisions(collisions, name)
         # NOTE: miliseconds measurement
-        self.time_stats[name] = (end - start) * 1000
-        #
-    #
-    def process_collisions(self, data : defaultdict, name : str):
-    #
-        collisions_num = 0
-        for it in data.values():
-            collisions_num += (it - 1)
-            #
         self.collisions_stats[name] = collisions_num
+        self.time_stats[name] = (end - start) * 1000
         #
     #
     def get_collisions_stats(self):
@@ -107,3 +113,4 @@ class SHAWrapper():
         plt.show()
         #
     #
+#
