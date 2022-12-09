@@ -1,4 +1,4 @@
-#include "sha256.hh"
+#include "algorithms/sha256.hh"
 
 // big endian architectures need #define __BYTE_ORDER __BIG_ENDIAN
 #ifndef _MSC_VER
