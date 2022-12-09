@@ -1,3 +1,3 @@
-[submodule "passwords/Probable-Wordlists"]
-	path = passwords/Probable-Wordlists
+[submodule "thirdparty/passwords/Probable-Wordlist"]
+	path = thirdparty/passwords/Probable-Wordlist
 	url = git@github.com:berzerk0/Probable-Wordlists.git
