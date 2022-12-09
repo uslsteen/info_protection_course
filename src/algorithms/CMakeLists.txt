@@ -1,0 +1,1 @@
+add_library(algorithms sha256.cc)
