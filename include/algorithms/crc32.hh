@@ -25,12 +25,6 @@ typedef unsigned __int32 uint32_t;
     while (more data available)
       crc32.add(pointer to fresh data, number of new bytes);
     std::string myHash3 = crc32.getHash();
-
-    Note:
-    You can find code for the faster Slicing-by-16 algorithm on my website, too:
-    http://create.stephan-brumme.com/crc32/
-    Its unrolled version is about twice as fast but its look-up table doubled in
-   size as well.
   */
 class CRC32 //: public Hash
 {
