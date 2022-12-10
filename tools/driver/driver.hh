@@ -8,6 +8,9 @@
 #include <string_view>
 #include <unordered_map>
 #include <vector>
+#include <unordered_set>
+#include <cmath>
+#include <random>
 //
 #include "algorithms/crc32.hh"
 #include "algorithms/keccak.hh"
@@ -36,6 +39,7 @@ private:
   std::vector<std::string> m_words{};
   //
   std::unordered_map<std::string, double> m_time_stats{};
+  std::unordered_map<std::string, std::size_t> m_collisions_stats{};
   //
 public:
   SHAWrapper(const std::string &path_to_src, const std::string &output,
@@ -53,6 +57,25 @@ public:
         m_sha_xx(sha_xx)
   //
   {
+    initImplMap();
+    //
+    m_in.open(path_to_src);
+    m_out.open(output, std::ofstream::out);
+    //
+    parse();
+  }
+  //
+  SHAWrapper(const SHAWrapper &) = delete;
+  SHAWrapper(SHAWrapper &&) = delete;
+  SHAWrapper &operator=(const SHAWrapper &) = delete;
+  SHAWrapper &operator=(SHAWrapper &&) = delete;
+
+  ~SHAWrapper() {
+    m_in.close();
+    m_out.close();
+  }
+
+  void initImplMap() {
     SHA1 sha1{};
     m_sha_impl_map.insert(std::make_pair("sha1", sha1));
     //
@@ -77,21 +100,6 @@ public:
     //
     MD5 md5{};
     m_sha_impl_map.insert(std::make_pair("MD5", md5));
-    //
-    m_in.open(path_to_src);
-    m_out.open(output, std::ofstream::out);
-    //
-    parse();
-  }
-  //
-  SHAWrapper(const SHAWrapper &) = delete;
-  SHAWrapper(SHAWrapper &&) = delete;
-  SHAWrapper &operator=(const SHAWrapper &) = delete;
-  SHAWrapper &operator=(SHAWrapper &&) = delete;
-
-  ~SHAWrapper() {
-    m_in.close();
-    m_out.close();
   }
 
   void parse() {
@@ -108,7 +116,7 @@ public:
    * @brief
    *
    */
-  void run() {
+  void run_time() {
     //
     for (auto &&m_sha_name : m_sha_names) {
       auto &&hash_func = m_sha_impl_map.at(m_sha_name);
@@ -122,10 +130,58 @@ public:
     }
   }
 
-  void dump() {
-    for (auto &&it : m_time_stats)
-      m_out << it.first << "," << it.second << std::endl;
+  void run_collisions() {
+    std::size_t n = 1000;
+
+    for (auto &&m_sha_name : m_sha_names) {
+      m_collisions_stats[m_sha_name] = 0;
+    }
+    for (std::size_t i = 0; i < n; ++i) {
+      for (auto &&m_sha_name : m_sha_names) {
+        auto &&hash_func = m_sha_impl_map.at(m_sha_name);
+        std::unordered_set<std::string> hashes;
+        for(std::size_t j = 0; j < std::pow(2, m_sha_xx / 2); ++j) {
+          auto&& random_message = gen_random(78);
+          auto&& hash = hash_func(random_message);
+          hash.resize(m_sha_xx / 4);
+          if (hashes.count(hash)) {
+            m_collisions_stats[m_sha_name] += 1;
+          } else {
+            hashes.insert(hash);
+          }
+        }
+      }
+    }
   }
+
+  void dump() {
+    for (auto &&it : m_time_stats) {
+      m_out << it.first << "," << it.second << std::endl;
+    }
+    std::cout << m_collisions_stats.size();
+    for (auto &&it: m_collisions_stats) {
+      std::cout << it.first << "," << it.second << std::endl;
+    }
+  }
+
+  std::string gen_random(const int len) {
+    static const char alphanum[] =
+        "0123456789"
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "abcdefghijklmnopqrstuvwxyz";
+    std::string tmp_s;
+    tmp_s.reserve(len);
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> distrib(0, len - 1);
+
+    for (int i = 0; i < len; ++i) {
+        tmp_s += alphanum[distrib(gen) % (sizeof(alphanum) - 1)];
+    }
+    
+    return tmp_s;
+}
 };
 } // namespace sha_driver
 

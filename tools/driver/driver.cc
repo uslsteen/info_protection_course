@@ -21,7 +21,8 @@ int main(int argc, char **argv) {
   CLI11_PARSE(cli_app, argc, argv);
   //
   sha_driver::SHAWrapper wrap{path_to_src, output, sha_xx};
-  wrap.run();
+  wrap.run_time();
+  wrap.run_collisions();
   wrap.dump();
 
   return 0;

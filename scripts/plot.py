@@ -17,24 +17,31 @@ def parse(path_to_csv : Path) -> dict:
     return data
     #
 #
-def get_plot(data : dict):
+def get_plot(data : dict, title):
     plt.figure(figsize=(16,10))
     plt.bar(list(data.keys()), data.values(), color ='g')
-    plt.title("Time statistics, miliseconds")
+    plt.title(title)
     plt.show()
     #
 #
 def main():
     parser = argparse.ArgumentParser(description="Tool to make plots")
     parser.add_argument("--path_to_csv", type=str, help="Path to .csv sources")
+    parser.add_argument("--type", type=str, help="collisions/time")
     #
     args = parser.parse_args()
     #
     exec_path = Path.resolve(Path(__file__)).parent
     src_path = exec_path.joinpath(args.path_to_csv)
+    plot_type = args.type
+
+    title = "collisions statistics in birthday benchmark"
+    if plot_type == "time":
+        title = "Time statistics, miliseconds"
+
     data = parse(src_path)
     #
-    get_plot(data)
+    get_plot(data, title)
     #
 #
 if __name__ == "__main__":
