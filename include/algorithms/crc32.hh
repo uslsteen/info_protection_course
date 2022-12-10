@@ -1,17 +1,8 @@
 #pragma once
 
-//#include "hash.h"
 #include <string>
 
-// define fixed size integer types
-#ifdef _MSC_VER
-// Windows
-typedef unsigned __int8 uint8_t;
-typedef unsigned __int32 uint32_t;
-#else
-// GCC
-#include <stdint.h>
-#endif
+#include <cstdint>
 
 /// compute CRC32 hash, based on Intel's Slicing-by-8 algorithm
 /** Usage:
@@ -26,11 +17,10 @@ typedef unsigned __int32 uint32_t;
       crc32.add(pointer to fresh data, number of new bytes);
     std::string myHash3 = crc32.getHash();
   */
-class CRC32 //: public Hash
-{
+class CRC32 final {
 public:
   /// hash is 4 bytes long
-  enum { HashBytes = 4 };
+  static inline constexpr size_t HashBytes = 4;
 
   /// same as reset()
   CRC32();
@@ -53,5 +43,5 @@ public:
 
 private:
   /// hash
-  uint32_t m_hash;
+  uint32_t m_hash = 0;
 };

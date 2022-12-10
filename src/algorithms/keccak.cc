@@ -1,12 +1,12 @@
 #include "algorithms/keccak.hh"
 
-// big endian architectures need #define __BYTE_ORDER __BIG_ENDIAN
-#ifndef _MSC_VER
-#include <endian.h>
-#endif
+#include <bit>
+static_assert(std::endian::native == std::endian::little,
+              "It seems you are trying to run this on router ((");
 
 /// same as reset()
-Keccak::Keccak(Bits bits) : m_blockSize(200 - 2 * (bits / 8)), m_bits(bits) {
+Keccak::Keccak(Bits bits)
+    : m_blockSize(static_cast<size_t>(200 - 2 * (bits / 8))), m_bits(bits) {
   reset();
 }
 
@@ -172,16 +172,16 @@ void Keccak::processBlock(const void *data) {
     m_hash[1] = rotateLeft(last, 44);
 
     // Chi
-    for (unsigned int j = 0; j < StateSize; j += 5) {
+    for (size_t j = 0; j < StateSize; j += 5) {
       // temporaries
-      uint64_t one = m_hash[j];
-      uint64_t two = m_hash[j + 1];
+      uint64_t one_t = m_hash[j];
+      uint64_t two_t = m_hash[j + 1];
 
-      m_hash[j] ^= m_hash[j + 2] & ~two;
+      m_hash[j] ^= m_hash[j + 2] & ~two_t;
       m_hash[j + 1] ^= m_hash[j + 3] & ~m_hash[j + 2];
       m_hash[j + 2] ^= m_hash[j + 4] & ~m_hash[j + 3];
-      m_hash[j + 3] ^= one & ~m_hash[j + 4];
-      m_hash[j + 4] ^= two & ~one;
+      m_hash[j + 3] ^= one_t & ~m_hash[j + 4];
+      m_hash[j + 4] ^= two_t & ~one_t;
     }
 
     // Iota
@@ -228,7 +228,7 @@ void Keccak::add(const void *data, size_t numBytes) {
 
 /// process everything left in the internal buffer
 void Keccak::processBuffer() {
-  unsigned int blockSize = 200 - 2 * (m_bits / 8);
+  size_t blockSize = static_cast<size_t>(200 - 2 * (m_bits / 8));
 
   // add padding
   size_t offset = m_bufferSize;
@@ -258,7 +258,7 @@ std::string Keccak::getHash() {
   static const char dec2hex[16 + 1] = "0123456789abcdef";
 
   // number of significant elements in hash (uint64_t)
-  unsigned int hashLength = m_bits / 64;
+  unsigned int hashLength = static_cast<unsigned>(m_bits / 64);
 
   std::string result;
   for (unsigned int i = 0; i < hashLength; i++)
@@ -271,7 +271,7 @@ std::string Keccak::getHash() {
     }
 
   // Keccak224's last entry in m_hash provides only 32 bits instead of 64 bits
-  unsigned int remainder = m_bits - hashLength * 64;
+  unsigned int remainder = static_cast<unsigned>(m_bits) - hashLength * 64;
   unsigned int processed = 0;
   while (processed < remainder) {
     // convert a byte to hex
