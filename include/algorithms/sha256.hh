@@ -1,18 +1,7 @@
 #pragma once
 
-//#include "hash.h"
+#include <cstdint>
 #include <string>
-
-// define fixed size integer types
-#ifdef _MSC_VER
-// Windows
-typedef unsigned __int8 uint8_t;
-typedef unsigned __int32 uint32_t;
-typedef unsigned __int64 uint64_t;
-#else
-// GCC
-#include <stdint.h>
-#endif
 
 /// compute SHA256 hash
 /** Usage:
@@ -25,11 +14,11 @@ typedef unsigned __int64 uint64_t;
       sha256.add(pointer to fresh data, number of new bytes);
     std::string myHash3 = sha256.getHash();
   */
-class SHA256 //: public Hash
-{
+class SHA256 final {
 public:
   /// split into 64 byte blocks (=> 512 bits), hash is 32 bytes long
-  enum { BlockSize = 512 / 8, HashBytes = 32 };
+  static inline constexpr size_t BlockSize = 512 / 8;
+  static inline constexpr size_t HashBytes = 32;
 
   /// same as reset()
   SHA256();
@@ -57,13 +46,13 @@ private:
   void processBuffer();
 
   /// size of processed data in bytes
-  uint64_t m_numBytes;
+  uint64_t m_numBytes = 0;
   /// valid bytes in m_buffer
-  size_t m_bufferSize;
+  size_t m_bufferSize = 0;
   /// bytes not processed yet
-  uint8_t m_buffer[BlockSize];
+  uint8_t m_buffer[BlockSize] = {};
 
-  enum { HashValues = HashBytes / 4 };
+  static inline constexpr size_t HashValues = HashBytes / 4;
   /// hash, stored as integers
-  uint32_t m_hash[HashValues];
+  uint32_t m_hash[HashValues] = {};
 };

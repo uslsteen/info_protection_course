@@ -1,14 +1,15 @@
 #include "algorithms/sha3.hh"
 
-// big endian architectures need #define __BYTE_ORDER __BIG_ENDIAN
-#ifndef _MSC_VER
-#include <endian.h>
-#endif
-
+#include <bit>
 #include <iostream>
+#include <string_view>
+
+static_assert(std::endian::native == std::endian::little,
+              "It seems you are trying to run this on router ((");
 
 /// same as reset()
-SHA3::SHA3(Bits bits) : m_blockSize(200 - 2 * (bits / 8)), m_bits(bits) {
+SHA3::SHA3(Bits bits)
+    : m_blockSize(static_cast<size_t>(200 - 2 * (bits / 8))), m_bits(bits) {
   reset();
 }
 
@@ -39,23 +40,6 @@ inline uint64_t rotateLeft(uint64_t x, uint8_t numBits) {
   return (x << numBits) | (x >> (64 - numBits));
 }
 
-/// convert litte vs big endian
-inline uint64_t swap(uint64_t x) {
-#if defined(__GNUC__) || defined(__clang__)
-  return __builtin_bswap64(x);
-#endif
-#ifdef _MSC_VER
-  return _byteswap_uint64(x);
-#endif
-
-  return (x >> 56) | ((x >> 40) & 0x000000000000FF00ULL) |
-         ((x >> 24) & 0x0000000000FF0000ULL) |
-         ((x >> 8) & 0x00000000FF000000ULL) |
-         ((x << 8) & 0x000000FF00000000ULL) |
-         ((x << 24) & 0x0000FF0000000000ULL) |
-         ((x << 40) & 0x00FF000000000000ULL) | (x << 56);
-}
-
 /// return x % 5 for 0 <= x <= 9
 unsigned int mod5(unsigned int x) {
   if (x < 5)
@@ -67,17 +51,11 @@ unsigned int mod5(unsigned int x) {
 
 /// process a full block
 void SHA3::processBlock(const void *data) {
-#if defined(__BYTE_ORDER) && (__BYTE_ORDER != 0) &&                            \
-    (__BYTE_ORDER == __BIG_ENDIAN)
-#define LITTLEENDIAN(x) swap(x)
-#else
-#define LITTLEENDIAN(x) (x)
-#endif
 
   const uint64_t *data64 = (const uint64_t *)data;
   // mix data into state
   for (unsigned int i = 0; i < m_blockSize / 8; i++)
-    m_hash[i] ^= LITTLEENDIAN(data64[i]);
+    m_hash[i] ^= data64[i];
 
   // re-compute state
   for (unsigned int round = 0; round < Rounds; round++) {
@@ -176,14 +154,14 @@ void SHA3::processBlock(const void *data) {
     // Chi
     for (unsigned int j = 0; j < StateSize; j += 5) {
       // temporaries
-      uint64_t one = m_hash[j];
-      uint64_t two = m_hash[j + 1];
+      uint64_t one_t = m_hash[j];
+      uint64_t two_t = m_hash[j + 1];
 
-      m_hash[j] ^= m_hash[j + 2] & ~two;
+      m_hash[j] ^= m_hash[j + 2] & ~two_t;
       m_hash[j + 1] ^= m_hash[j + 3] & ~m_hash[j + 2];
       m_hash[j + 2] ^= m_hash[j + 4] & ~m_hash[j + 3];
-      m_hash[j + 3] ^= one & ~m_hash[j + 4];
-      m_hash[j + 4] ^= two & ~one;
+      m_hash[j + 3] ^= one_t & ~m_hash[j + 4];
+      m_hash[j + 4] ^= two_t & ~one_t;
     }
 
     // Iota
@@ -256,13 +234,13 @@ std::string SHA3::getHash() {
   processBuffer();
 
   // convert hash to string
-  static const char dec2hex[16 + 1] = "0123456789abcdef";
+  static constexpr std::string_view dec2hex = "0123456789abcdef";
 
   // number of significant elements in hash (uint64_t)
-  unsigned int hashLength = m_bits / 64;
+  unsigned int hashLength = static_cast<unsigned>(m_bits / 64);
 
   std::string result;
-  result.reserve(m_bits / 4);
+  result.reserve(static_cast<size_t>(m_bits / 4));
   for (unsigned int i = 0; i < hashLength; i++)
     for (unsigned int j = 0; j < 8; j++) // 64 bits => 8 bytes
     {
@@ -273,7 +251,7 @@ std::string SHA3::getHash() {
     }
 
   // SHA3-224's last entry in m_hash provides only 32 bits instead of 64 bits
-  unsigned int remainder = m_bits - hashLength * 64;
+  unsigned int remainder = static_cast<unsigned>(m_bits) - hashLength * 64;
   unsigned int processed = 0;
   while (processed < remainder) {
     // convert a byte to hex

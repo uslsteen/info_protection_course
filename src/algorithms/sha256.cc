@@ -1,11 +1,8 @@
 #include "algorithms/sha256.hh"
 
-// big endian architectures need #define __BYTE_ORDER __BIG_ENDIAN
-#ifndef _MSC_VER
-#include <endian.h>
-#endif
-
-//#define SHA2_224_SEED_VECTOR
+#include <bit>
+static_assert(std::endian::native == std::endian::little,
+              "It seems you are trying to run this on router ((");
 
 /// same as reset()
 SHA256::SHA256() { reset(); }
@@ -50,9 +47,6 @@ inline uint32_t swap(uint32_t x) {
 #if defined(__GNUC__) || defined(__clang__)
   return __builtin_bswap32(x);
 #endif
-#ifdef MSC_VER
-  return _byteswap_ulong(x);
-#endif
 
   return (x >> 24) | ((x >> 8) & 0x0000FF00) | ((x << 8) & 0x00FF0000) |
          (x << 24);
@@ -85,17 +79,12 @@ void SHA256::processBlock(const void *data) {
   uint32_t h = m_hash[7];
 
   // data represented as 16x 32-bit words
-  const uint32_t *input = (uint32_t *)data;
+  const uint32_t *input = reinterpret_cast<const uint32_t *>(data);
   // convert to big endian
   uint32_t words[64];
-  int i;
+  size_t i;
   for (i = 0; i < 16; i++)
-#if defined(__BYTE_ORDER) && (__BYTE_ORDER != 0) &&                            \
-    (__BYTE_ORDER == __BIG_ENDIAN)
-    words[i] = input[i];
-#else
     words[i] = swap(input[i]);
-#endif
 
   uint32_t x, y; // temporaries
 
@@ -547,8 +536,8 @@ std::string SHA256::getHash() {
   // convert to hex string
   std::string result;
   result.reserve(2 * HashBytes);
-  for (int i = 0; i < HashBytes; i++) {
-    static const char dec2hex[16 + 1] = "0123456789abcdef";
+  for (size_t i = 0; i < HashBytes; i++) {
+    static constexpr std::string_view dec2hex = "0123456789abcdef";
     result += dec2hex[(rawHash[i] >> 4) & 15];
     result += dec2hex[rawHash[i] & 15];
   }
@@ -560,14 +549,14 @@ std::string SHA256::getHash() {
 void SHA256::getHash(unsigned char buffer[SHA256::HashBytes]) {
   // save old hash if buffer is partially filled
   uint32_t oldHash[HashValues];
-  for (int i = 0; i < HashValues; i++)
+  for (size_t i = 0; i < HashValues; i++)
     oldHash[i] = m_hash[i];
 
   // process remaining bytes
   processBuffer();
 
   unsigned char *current = buffer;
-  for (int i = 0; i < HashValues; i++) {
+  for (size_t i = 0; i < HashValues; i++) {
     *current++ = (m_hash[i] >> 24) & 0xFF;
     *current++ = (m_hash[i] >> 16) & 0xFF;
     *current++ = (m_hash[i] >> 8) & 0xFF;

@@ -1,9 +1,10 @@
 #include "algorithms/crc32.hh"
 
-// big endian architectures need #define __BYTE_ORDER __BIG_ENDIAN
-#ifndef _MSC_VER
-#include <endian.h>
-#endif
+#include <bit>
+#include <string_view>
+
+static_assert(std::endian::native == std::endian::little,
+              "It seems you are trying to run this on router ((");
 
 /// same as reset()
 CRC32::CRC32() { reset(); }
@@ -391,47 +392,26 @@ static const uint32_t crc32Lookup[8][256] = {
      0xFF6B144A, 0x33C114D4, 0xBD4E1337, 0x71E413A9, 0x7B211AB0, 0xB78B1A2E,
      0x39041DCD, 0xF5AE1D53, 0x2C8E0FFF, 0xE0240F61, 0x6EAB0882, 0xA201081C,
      0xA8C40105, 0x646E019B, 0xEAE10678, 0x264B06E6}};
-
-inline uint32_t swap(uint32_t x) {
-#if defined(__GNUC__) || defined(__clang__)
-  return __builtin_bswap32(x);
-#endif
-#ifdef MSC_VER
-  return _byteswap_ulong(x);
-#endif
-
-  return (x >> 24) | ((x >> 8) & 0x0000FF00) | ((x << 8) & 0x00FF0000) |
-         (x << 24);
-}
 } // namespace
 
 /// add arbitrary number of bytes
 void CRC32::add(const void *data, size_t numBytes) {
-  uint32_t *current = (uint32_t *)data;
+  const uint32_t *current = reinterpret_cast<const uint32_t *>(data);
   uint32_t crc = ~m_hash;
 
   // process eight bytes at once
   while (numBytes >= 8) {
-#if defined(__BYTE_ORDER) && (__BYTE_ORDER != 0) &&                            \
-    (__BYTE_ORDER == __BIG_ENDIAN)
-    uint32_t one = *current++ ^ swap(crc);
-    uint32_t two = *current++;
-    crc = crc32Lookup[7][one >> 24] ^ crc32Lookup[6][(one >> 16) & 0xFF] ^
-          crc32Lookup[5][(one >> 8) & 0xFF] ^ crc32Lookup[4][one & 0xFF] ^
-          crc32Lookup[3][two >> 24] ^ crc32Lookup[2][(two >> 16) & 0xFF] ^
-          crc32Lookup[1][(two >> 8) & 0xFF] ^ crc32Lookup[0][two & 0xFF];
-#else
     uint32_t one = *current++ ^ crc;
     uint32_t two = *current++;
     crc = crc32Lookup[7][one & 0xFF] ^ crc32Lookup[6][(one >> 8) & 0xFF] ^
           crc32Lookup[5][(one >> 16) & 0xFF] ^ crc32Lookup[4][one >> 24] ^
           crc32Lookup[3][two & 0xFF] ^ crc32Lookup[2][(two >> 8) & 0xFF] ^
           crc32Lookup[1][(two >> 16) & 0xFF] ^ crc32Lookup[0][two >> 24];
-#endif
     numBytes -= 8;
   }
 
-  unsigned char *currentChar = (unsigned char *)current;
+  const unsigned char *currentChar =
+      reinterpret_cast<const unsigned char *>(current);
   // remaining 1 to 7 bytes (standard CRC table-based algorithm)
   while (numBytes--)
     crc = (crc >> 8) ^ crc32Lookup[0][(crc & 0xFF) ^ *currentChar++];
@@ -442,7 +422,7 @@ void CRC32::add(const void *data, size_t numBytes) {
 /// return latest hash as 8 hex characters
 std::string CRC32::getHash() {
   // convert hash to string
-  static const char dec2hex[16 + 1] = "0123456789abcdef";
+  static constexpr std::string_view dec2hex = "0123456789abcdef";
 
   char hashBuffer[8 + 1];
 
