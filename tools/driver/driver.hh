@@ -140,7 +140,7 @@ public:
       for (auto &&m_sha_name : m_sha_names) {
         auto &&hash_func = m_sha_impl_map.at(m_sha_name);
         std::unordered_set<std::string> hashes;
-        for (size_t j = 0; j < (1 << (m_sha_xx >> 1)); ++j) {
+        for (size_t j = 0; j < (1u << (m_sha_xx >> 1u)); ++j) {
           auto &&random_message = gen_random(78);
           auto &&hash = hash_func(random_message);
 
@@ -172,14 +172,15 @@ public:
                                                  "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                                                  "abcdefghijklmnopqrstuvwxyz";
     std::string tmp_s;
-    tmp_s.reserve(len);
+    tmp_s.reserve(static_cast<size_t>(len));
 
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_int_distribution<> distrib(0, len - 1);
 
     for (int i = 0; i < len; ++i) {
-      tmp_s += alphanum[distrib(gen) % (sizeof(alphanum) - 1)];
+      tmp_s +=
+          alphanum[static_cast<size_t>(distrib(gen)) % (sizeof(alphanum) - 1)];
     }
 
     return tmp_s;
