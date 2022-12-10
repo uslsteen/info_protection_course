@@ -5,10 +5,8 @@
 #include <endian.h>
 #endif
 
-    /// same as reset()
-    SHA1::SHA1() {
-  reset();
-}
+/// same as reset()
+SHA1::SHA1() { reset(); }
 
 /// restart
 void SHA1::reset() {
