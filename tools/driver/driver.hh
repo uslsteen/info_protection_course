@@ -158,7 +158,7 @@ public:
     for (auto &&it : m_time_stats) {
       m_out << it.first << "," << it.second << std::endl;
     }
-    std::cout << m_collisions_stats.size();
+
     for (auto &&it: m_collisions_stats) {
       std::cout << it.first << "," << it.second << std::endl;
     }
