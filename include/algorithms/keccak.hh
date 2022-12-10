@@ -20,7 +20,6 @@
 class Keccak final {
 public:
   /// algorithm variants
-#error "TODO"
   enum Bits {
     Keccak224 = 224,
     Keccak256 = 256,
