@@ -4,7 +4,7 @@
 int main(int argc, char **argv) {
 
   std::string path_to_src{}, output{};
-  std::size_t sha_xx = 0;
+  size_t sha_xx = 0;
   std::vector<std::string> sha_names{};
 
   CLI::App cli_app("Tool to compare SHA");

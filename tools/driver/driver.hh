@@ -1,16 +1,16 @@
 #ifndef DRIVER_HH
 #define DRIVER_HH
 
+#include <cmath>
 #include <filesystem>
 #include <fstream>
 #include <functional>
 #include <iostream>
+#include <random>
 #include <string_view>
 #include <unordered_map>
-#include <vector>
 #include <unordered_set>
-#include <cmath>
-#include <random>
+#include <vector>
 //
 #include "algorithms/crc32.hh"
 #include "algorithms/keccak.hh"
@@ -32,18 +32,18 @@ private:
   std::ifstream m_in{};
   std::ofstream m_out{};
   std::vector<std::string> m_sha_names{};
-  std::size_t m_sha_xx = 0;
+  size_t m_sha_xx = 0;
   //
   map_t<std::function<std::string(const std::string &)>> m_sha_impl_map{};
   //
   std::vector<std::string> m_words{};
   //
   std::unordered_map<std::string, double> m_time_stats{};
-  std::unordered_map<std::string, std::size_t> m_collisions_stats{};
+  std::unordered_map<std::string, size_t> m_collisions_stats{};
   //
 public:
   SHAWrapper(const std::string &path_to_src, const std::string &output,
-             std::size_t sha_xx)
+             size_t sha_xx)
       : m_sha_names({"sha1",
                      //
                      "sha3_224", "sha3_256", "sha3_384", "sha3_512",
@@ -131,19 +131,22 @@ public:
   }
 
   void run_collisions() {
-    std::size_t n = 1000;
+    size_t n = 1000;
 
     for (auto &&m_sha_name : m_sha_names) {
       m_collisions_stats[m_sha_name] = 0;
     }
-    for (std::size_t i = 0; i < n; ++i) {
+    for (size_t i = 0; i < n; ++i) {
       for (auto &&m_sha_name : m_sha_names) {
         auto &&hash_func = m_sha_impl_map.at(m_sha_name);
         std::unordered_set<std::string> hashes;
-        for(std::size_t j = 0; j < std::pow(2, m_sha_xx / 2); ++j) {
-          auto&& random_message = gen_random(78);
-          auto&& hash = hash_func(random_message);
+        for (size_t j = 0; j < (1 << (m_sha_xx >> 1)); ++j) {
+          auto &&random_message = gen_random(78);
+          auto &&hash = hash_func(random_message);
+
+          // Cut hash
           hash.resize(m_sha_xx / 4);
+
           if (hashes.count(hash)) {
             m_collisions_stats[m_sha_name] += 1;
           } else {
@@ -159,16 +162,15 @@ public:
       m_out << it.first << "," << it.second << std::endl;
     }
 
-    for (auto &&it: m_collisions_stats) {
+    for (auto &&it : m_collisions_stats) {
       std::cout << it.first << "," << it.second << std::endl;
     }
   }
 
   std::string gen_random(const int len) {
-    static const char alphanum[] =
-        "0123456789"
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        "abcdefghijklmnopqrstuvwxyz";
+    static constexpr std::string_view alphanum = "0123456789"
+                                                 "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                                                 "abcdefghijklmnopqrstuvwxyz";
     std::string tmp_s;
     tmp_s.reserve(len);
 
@@ -177,11 +179,11 @@ public:
     std::uniform_int_distribution<> distrib(0, len - 1);
 
     for (int i = 0; i < len; ++i) {
-        tmp_s += alphanum[distrib(gen) % (sizeof(alphanum) - 1)];
+      tmp_s += alphanum[distrib(gen) % (sizeof(alphanum) - 1)];
     }
-    
+
     return tmp_s;
-}
+  }
 };
 } // namespace sha_driver
 
