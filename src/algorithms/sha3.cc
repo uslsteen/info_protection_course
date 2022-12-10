@@ -45,9 +45,6 @@ inline uint64_t swap(uint64_t x) {
 #if defined(__GNUC__) || defined(__clang__)
   return __builtin_bswap64(x);
 #endif
-#ifdef _MSC_VER
-  return _byteswap_uint64(x);
-#endif
 
   return (x >> 56) | ((x >> 40) & 0x000000000000FF00ULL) |
          ((x >> 24) & 0x0000000000FF0000ULL) |
@@ -68,17 +65,11 @@ unsigned int mod5(unsigned int x) {
 
 /// process a full block
 void SHA3::processBlock(const void *data) {
-#if defined(__BYTE_ORDER) && (__BYTE_ORDER != 0) &&                            \
-    (__BYTE_ORDER == __BIG_ENDIAN)
-#define LITTLEENDIAN(x) swap(x)
-#else
-#define LITTLEENDIAN(x) (x)
-#endif
 
   const uint64_t *data64 = (const uint64_t *)data;
   // mix data into state
   for (unsigned int i = 0; i < m_blockSize / 8; i++)
-    m_hash[i] ^= LITTLEENDIAN(data64[i]);
+    m_hash[i] ^= data64[i];
 
   // re-compute state
   for (unsigned int round = 0; round < Rounds; round++) {
