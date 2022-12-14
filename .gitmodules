@@ -1,6 +1,6 @@
-[submodule "thirdparty/Probable-Wordlists"]
-	path = thirdparty/Probable-Wordlists
+[submodule "sha_lab/thirdparty/Probable-Wordlists"]
+	path = sha_lab/thirdparty/Probable-Wordlists
 	url = https://github.com/berzerk0/Probable-Wordlists.git
-[submodule "thirdparty/CLI11"]
-	path = thirdparty/CLI11
+[submodule "sha_lab/thirdparty/CLI11"]
+	path = sha_lab/thirdparty/CLI11
 	url = git@github.com:CLIUtils/CLI11.git
