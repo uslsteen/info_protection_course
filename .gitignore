@@ -136,3 +136,4 @@ dmypy.json
 *.aux
 *.fdb_latexmk
 *.gz
+*Zone.Identifier
